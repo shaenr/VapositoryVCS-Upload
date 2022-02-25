@@ -5,8 +5,16 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import pickle
 from pathlib import Path
+import json
 
-VIDEO_URL = Path('/media/shaen/Home/zips/METAPRISE APPLICATIONS & b l u e s c r e e n - Cruisesoft/output.mkv')
+
+def deserialize_json(p: str = "/media/shaen/Home/Digi,.json "):
+    path = Path(p)
+    with path.open('w') as fo:
+        return json.load(fo)
+
+
+VIDEO_URL = Path('')
 
 # Maximum number of times to retry before giving up.
 MAX_RETRIES = 10
@@ -51,64 +59,63 @@ def get_authenticated_service():
     return build(API_NAME, API_VERSION, credentials=credentials)
 
 
-def initialize_upload(service):
+def initialize_upload(service, d):
     # publish_date_time = datetime.datetime(2022, 2, 6, 9, 30, 0).isoformat() + '.000Z'
+
+    media_body = MediaFileUpload(VIDEO_URL, chunksize=-1, resumable=True)
+
+    data = deserialize_json()
+
+    tracks = data['tracks']['tracks']
+
+    album_track_times = ""
+    for idx, td in enumerate(tracks):
+        album_track_times += f"{str(idx)}. {td['track']}  ({td['time']})\n"
 
     request_body = {
         'snippet': {
             'categoryId': MUSIC_CATEGORY_ID,
-            'title': "Metaprise Applications - Island Port Arrival",
-            'description': 'This is a vaporwave video by Metaprise Applications',
-            'tags': ['vaporwave']
+            'title': f"{data['ARTIST']} - {data['ALBUM_NAME']}",
+            f"""
+             ARTIST: {data['ARTIST']},
+             ALBUM: {data['ALBUM_NAME']},
+             DESCRIPTION: {data['ARTIST_BIO_TEXT']},
+             DATE UPLOADED: {data['DATE_UPLOADED']},
+             LOCATION: {data['LOCATION']},
+
+             TRACK LIST: 
+             {album_track_times}
+
+             https://digi4.bandcamp.com/album/e-real-demo
+             """
+            'tags': [
+                'electronic',
+                'electronica',
+                'future funk',
+                'mallsoft',
+                'vaporwave',
+                'Czechia'
+            ],
         },
+
         'status': {
-            'privacyStatus': 'private',
+            'privacyStatus': 'public',
             # 'publishAt': publish_date_time,
             'selfDeclaredMadeForKids': False
         },
         'notifySubscribers': False
     }
 
-    media_body = MediaFileUpload(VIDEO_URL, chunksize=-1, resumable=True)
+    from pprint import pprint as pp
+    pp(request_body)
+    from sys import exit
+    exit()
 
-    upload = service.videos().insert(
-        part="snippet,status",
-        body=request_body,
-        media_body=media_body
-    ).execute()
-
-    # resumable_upload(upload)
-
-
-# def resumable_upload(insert_request):
-#     response = None
-#     error = None
-#     retry = 0
-#     while response is None:
-#         try:
-#             print("Uploading file...")
-#             status, response = insert_request
-#             if response is not None:
-#                 if 'id' in response:
-#                     print(f"Video id {response['id']} was successfully uploaded.")
-#                 else:
-#                     sys.exit(f"The upload failed with unexpected response: {response}")
-#         except HttpError as e:
-#             if e.resp.status in RETRIABLE_STATUS_CODES:
-#                 error = f"A retriable HTTP error {e.resp.status} occurred: {e.content}"
-#             else:
-#                 raise
-#
-#         if error is not None:
-#             print(error)
-#             retry += 1
-#             if retry > MAX_RETRIES:
-#                 sys.exit("No longer attempting to retry")
-#
-#             max_sleep = 2 ** retry
-#             sleep_seconds = random.random() * max_sleep
-#             print(f"Sleeping for {sleep_seconds} and then retrying...")
-#             time.sleep(sleep_seconds)
+    # upload = service.videos().insert(
+    #     part="snippet,status",
+    #     body=request_body,
+    #     media_body=media_body
+    # ).execute()
 
 
 if __name__ == '__main__':
